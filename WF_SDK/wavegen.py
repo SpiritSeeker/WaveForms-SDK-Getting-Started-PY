@@ -30,6 +30,7 @@ class state:
     on = False
     off = True
     channel = [False, False]
+    synchronous = False
 
 """-----------------------------------------------------------------------"""
 
@@ -67,11 +68,12 @@ def generate(device_data, channel, function, offset, frequency=1e03, amplitude=1
     """
     # enable channel
     channel = ctypes.c_int(channel - 1)
-    dwf.FDwfAnalogOutNodeEnableSet(device_data.handle, channel, constants.AnalogOutNodeCarrier, ctypes.c_bool(True))
-    
+    if not state.synchronous:
+        dwf.FDwfAnalogOutNodeEnableSet(device_data.handle, channel, constants.AnalogOutNodeCarrier, ctypes.c_bool(True))
+
     # set function type
     dwf.FDwfAnalogOutNodeFunctionSet(device_data.handle, channel, constants.AnalogOutNodeCarrier, function)
-    
+
     # load data if the function type is custom
     if function == constants.funcCustom:
         data_length = len(data)
@@ -79,30 +81,31 @@ def generate(device_data, channel, function, offset, frequency=1e03, amplitude=1
         for index in range(0, len(buffer)):
             buffer[index] = ctypes.c_double(data[index])
         dwf.FDwfAnalogOutNodeDataSet(device_data.handle, channel, constants.AnalogOutNodeCarrier, buffer, ctypes.c_int(data_length))
-    
+
     # set frequency
     dwf.FDwfAnalogOutNodeFrequencySet(device_data.handle, channel, constants.AnalogOutNodeCarrier, ctypes.c_double(frequency))
-    
+
     # set amplitude or DC voltage
     dwf.FDwfAnalogOutNodeAmplitudeSet(device_data.handle, channel, constants.AnalogOutNodeCarrier, ctypes.c_double(amplitude))
-    
+
     # set offset
     dwf.FDwfAnalogOutNodeOffsetSet(device_data.handle, channel, constants.AnalogOutNodeCarrier, ctypes.c_double(offset))
-    
+
     # set symmetry
     dwf.FDwfAnalogOutNodeSymmetrySet(device_data.handle, channel, constants.AnalogOutNodeCarrier, ctypes.c_double(symmetry))
-    
+
     # set running time limit
     dwf.FDwfAnalogOutRunSet(device_data.handle, channel, ctypes.c_double(run_time))
-    
+
     # set wait time before start
     dwf.FDwfAnalogOutWaitSet(device_data.handle, channel, ctypes.c_double(wait))
-    
+
     # set number of repeating cycles
     dwf.FDwfAnalogOutRepeatSet(device_data.handle, channel, ctypes.c_int(repeat))
-    
+
     # start
-    dwf.FDwfAnalogOutConfigure(device_data.handle, channel, ctypes.c_bool(True))
+    if channel == ctypes.c_int(0) or not state.synchronous:
+        dwf.FDwfAnalogOutConfigure(device_data.handle, channel, ctypes.c_bool(True))
     state.on = True
     state.off = False
     state.channel[channel.value] = True
@@ -133,6 +136,19 @@ def enable(device_data, channel):
     state.on = True
     state.off = False
     state.channel[channel.value] = True
+    return
+
+"""-----------------------------------------------------------------------"""
+
+def synchronize(device_data):
+    """Synchronizes the two channels"""
+    dwf.FDwfAnalogOutNodeEnableSet(
+        device_data.handle, ctypes.c_int(-1), constants.AnalogOutNodeCarrier, ctypes.c_bool(True))
+
+
+    # Set channel 0 as master
+    dwf.FDwfAnalogOutMasterSet(device_data.handle, ctypes.c_int(1), ctypes.c_int(0))
+    state.synchronous = True
     return
 
 """-----------------------------------------------------------------------"""
