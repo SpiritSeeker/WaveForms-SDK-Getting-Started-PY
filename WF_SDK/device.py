@@ -80,13 +80,13 @@ def open(device=None):
         open a specific device
 
         parameters: - device type: None (first device), "Analog Discovery", "Analog Discovery 2", "Analog Discovery Studio", "Digital Discovery", "Analog Discovery Pro 3X50" and "Analog Discovery Pro 5250"
-    
+
         returns:    - device data
     """
     device_names = [("Analog Discovery", constants.devidDiscovery), ("Analog Discovery 2", constants.devidDiscovery2),
                     ("Analog Discovery Studio", constants.devidDiscovery2), ("Digital Discovery", constants.devidDDiscovery),
                     ("Analog Discovery Pro 3X50", constants.devidADP3X50), ("Analog Discovery Pro 5250", constants.devidADP5250)]
-    
+
     # decode device names
     device_type = constants.enumfilterAll
     for pair in device_names:
@@ -129,11 +129,12 @@ def open(device=None):
                 device_name = pair[0]
                 break
 
-    data.handle = device_handle
-    data.name = device_name
+    device_data = data()
+    device_data.handle = device_handle
+    device_data.name = device_name
     state.connected = True
     state.disconnected = False
-    return data
+    return device_data
 
 """-----------------------------------------------------------------------"""
 
@@ -146,7 +147,7 @@ def check_error(device_data):
         # check for errors
         err_nr = ctypes.c_int()            # variable for error number
         dwf.FDwfGetLastError(ctypes.byref(err_nr))  # get error number
-    
+
         # if there is an error
         if err_nr != constants.dwfercNoErc:
             # display it and quit
@@ -167,8 +168,6 @@ def close(device_data):
         close a specific device
     """
     dwf.FDwfDeviceClose(device_data.handle)
-    data.handle = ctypes.c_int(0)
-    data.name = ""
     state.connected = False
     state.disconnected = True
     return
