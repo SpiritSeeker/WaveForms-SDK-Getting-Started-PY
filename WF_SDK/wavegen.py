@@ -104,7 +104,7 @@ def generate(device_data, channel, function, offset, frequency=1e03, amplitude=1
     dwf.FDwfAnalogOutRepeatSet(device_data.handle, channel, ctypes.c_int(repeat))
 
     # start
-    if channel == ctypes.c_int(0) or not state.synchronous:
+    if channel.value == 0 or not state.synchronous:
         dwf.FDwfAnalogOutConfigure(device_data.handle, channel, ctypes.c_bool(True))
     state.on = True
     state.off = False
@@ -147,7 +147,7 @@ def synchronize(device_data):
 
 
     # Set channel 0 as master
-    dwf.FDwfAnalogOutMasterSet(device_data.handle, ctypes.c_int(1), ctypes.c_int(0))
+    dwf.FDwfAnalogOutMasterSet(device_data.handle, ctypes.c_int(-1), ctypes.c_int(0))
     state.synchronous = True
     return
 
