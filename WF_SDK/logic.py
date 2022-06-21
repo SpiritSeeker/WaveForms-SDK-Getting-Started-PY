@@ -49,13 +49,13 @@ def open(device_data, sampling_frequency=100e06, buffer_size=4096):
     # get internal clock frequency
     internal_frequency = ctypes.c_double()
     dwf.FDwfDigitalInInternalClockInfo(device_data.handle, ctypes.byref(internal_frequency))
-    
+
     # set clock frequency divider (needed for lower frequency input signals)
     dwf.FDwfDigitalInDividerSet(device_data.handle, ctypes.c_int(int(internal_frequency.value / sampling_frequency)))
-    
+
     # set 16-bit sample format
     dwf.FDwfDigitalInSampleFormatSet(device_data.handle, ctypes.c_int(16))
-    
+
     # set buffer size
     dwf.FDwfDigitalInBufferSizeSet(device_data.handle, ctypes.c_int(buffer_size))
     data.sampling_frequency = sampling_frequency
@@ -88,7 +88,7 @@ def trigger(device_data, enable, channel, position=0, timeout=0, rising_edge=Tru
     else:
         dwf.FDwfDigitalInTriggerSourceSet(device_data.handle, constants.trigsrcNone)
         state.trigger = False
-    
+
     # set starting position and prefill
     position = min(data.buffer_size, max(0, position))
     dwf.FDwfDigitalInTriggerPositionSet(device_data.handle, ctypes.c_int(data.buffer_size - position))
@@ -102,10 +102,10 @@ def trigger(device_data, enable, channel, position=0, timeout=0, rising_edge=Tru
     else:
         dwf.FDwfDigitalInTriggerSet(device_data.handle, ctypes.c_int(0), channel, ctypes.c_int(0), ctypes.c_int(0))
         dwf.FDwfDigitalInTriggerResetSet(device_data.handle, ctypes.c_int(0), ctypes.c_int(0), channel, ctypes.c_int(0))
-    
+
     # set auto triggering
     dwf.FDwfDigitalInTriggerAutoTimeoutSet(device_data.handle, ctypes.c_double(timeout))
-    
+
     # set sequence length to activate trigger
     dwf.FDwfDigitalInTriggerLengthSet(device_data.handle, ctypes.c_double(length_min), ctypes.c_double(length_max), ctypes.c_int(0))
 
@@ -127,31 +127,31 @@ def record(device_data, channel):
     """
     # set up the instrument
     dwf.FDwfDigitalInConfigure(device_data.handle, ctypes.c_bool(False), ctypes.c_bool(True))
-    
+
     # read data to an internal buffer
     while True:
         status = ctypes.c_byte()    # variable to store buffer status
         dwf.FDwfDigitalInStatus(device_data.handle, ctypes.c_bool(True), ctypes.byref(status))
-    
+
         if status.value == constants.stsDone.value:
             # exit loop when finished
             break
-    
+
     # get samples
     buffer = (ctypes.c_uint16 * data.buffer_size)()
     dwf.FDwfDigitalInStatusData(device_data.handle, buffer, ctypes.c_int(2 * data.buffer_size))
-    
+
     # convert buffer to list of lists of integers
     buffer = [int(element) for element in buffer]
     result = [[] for _ in range(16)]
     for point in buffer:
         for index in range(16):
-            result[index].append(point & (1 << index))
-    
+            result[index].append(point & (1 << index) >> index)
+
     # calculate acquisition time
     time = range(0, data.buffer_size)
     time = [moment / data.sampling_frequency for moment in time]
-    
+
     # get channel specific data
     buffer = result[channel]
     return buffer, time
