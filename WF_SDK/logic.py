@@ -146,7 +146,7 @@ def record(device_data, channel):
     result = [[] for _ in range(16)]
     for point in buffer:
         for index in range(16):
-            result[index].append(point & (1 << index) >> index)
+            result[index].append((point & (1 << index)) >> index)
 
     # calculate acquisition time
     time = range(0, data.buffer_size)
